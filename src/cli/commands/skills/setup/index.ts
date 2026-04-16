@@ -47,9 +47,68 @@ export function createSkillsSetupCommand(): Command {
   return command;
 }
 
+async function showDisclaimer(): Promise<boolean> {
+  const ANSI = {
+    CLEAR_SCREEN: '\x1B[2J\x1B[H',
+    SHOW_CURSOR: '\x1B[?25h',
+  } as const;
+
+  const KEY = {
+    ENTER: '\r',
+    ESC: '\x1B',
+    CTRL_C: '\x03',
+  } as const;
+
+  const lines = [
+    '',
+    chalk.yellow('  ⚠  Skills are installed without tools or MCP servers.'),
+    '',
+    chalk.white('  If you need tools or MCP servers with your skill:'),
+    chalk.white('  1. Go to ') + chalk.cyan('https://codemie.lab.epam.com/assistants'),
+    chalk.white('  2. Create an assistant and attach your skill to it'),
+    chalk.white('  3. Configure tools and MCP servers on the assistant'),
+    chalk.white('  4. Run: ') + chalk.cyan('codemie assistants setup'),
+    '',
+    chalk.dim('  Press Enter to continue  ·  Ctrl+C to exit'),
+    '',
+  ];
+
+  process.stdout.write(lines.join('\n'));
+
+  return new Promise((resolve) => {
+    process.stdin.setRawMode(true);
+    process.stdin.resume();
+    process.stdin.setEncoding('utf8');
+
+    function cleanup() {
+      process.stdin.setRawMode(false);
+      process.stdin.pause();
+      process.stdin.removeAllListeners('data');
+      process.stdout.write(ANSI.SHOW_CURSOR + ANSI.CLEAR_SCREEN);
+    }
+
+    process.stdin.on('data', (key: string) => {
+      if (key === KEY.ENTER) {
+        cleanup();
+        resolve(true);
+      } else if (key === KEY.ESC || key === KEY.CTRL_C) {
+        cleanup();
+        resolve(false);
+      }
+    });
+  });
+}
+
 async function setupSkills(options: { profile?: string }): Promise<void> {
   const config = await ConfigLoader.load();
   const client = await getAuthenticatedClient(config);
+
+  // Show disclaimer before skill selection
+  const proceed = await showDisclaimer();
+  if (!proceed) {
+    console.log(chalk.dim('\nNo changes made.\n'));
+    return;
+  }
 
   // Get currently registered skills
   const registeredSkills: CodemieSkill[] = config.codemieSkills || [];
