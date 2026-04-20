@@ -12,24 +12,33 @@ import { logger } from '@/utils/logger.js';
 
 /**
  * Sync all registered skills with the latest content from the platform.
+ * Respects scope: global skills → ~/.claude/skills/, local skills → cwd/.claude/skills/.
  * Runs silently — errors are logged but never surfaced to the user.
  */
-export async function syncRegisteredSkills(profileName?: string): Promise<void> {
+export async function syncRegisteredSkills(profileName?: string, cwd?: string): Promise<void> {
+	const workingDir = cwd ?? process.cwd();
 	try {
-		const config = await ConfigLoader.load(process.cwd(), profileName ? { name: profileName } : undefined);
-		const registeredSkills = config.codemieSkills ?? [];
+		const [globalSkills, localSkills] = await Promise.all([
+			ConfigLoader.loadSkillsByScope('global', workingDir, profileName ?? 'default').catch(() => []),
+			ConfigLoader.loadSkillsByScope('local', workingDir, profileName ?? 'default').catch(() => []),
+		]);
 
-		if (registeredSkills.length === 0) {
+		const allSkills = [
+			...globalSkills.map(s => ({ skill: s, scope: 'global' as const })),
+			...localSkills.map(s => ({ skill: s, scope: 'local' as const })),
+		];
+
+		if (allSkills.length === 0) {
 			return;
 		}
 
 		const client = await getCodemieClient();
 
-		for (const skill of registeredSkills) {
+		for (const { skill, scope } of allSkills) {
 			try {
 				const detail = await (client as any).skills.get(skill.id);
-				await registerClaudeSkill(detail);
-				logger.debug(`[skills-sync] Synced skill: ${skill.name}`);
+				await registerClaudeSkill(detail, scope, scope === 'local' ? workingDir : undefined);
+				logger.debug(`[skills-sync] Synced skill: ${skill.name} (${scope})`);
 			} catch (error) {
 				logger.debug(`[skills-sync] Failed to sync skill ${skill.name}`, { error });
 			}

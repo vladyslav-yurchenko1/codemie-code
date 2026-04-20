@@ -8,9 +8,11 @@ import type { SkillDetail } from 'codemie-sdk';
 /**
  * Get the skills directory path for Claude Code
  */
-function getSkillsDir(): string {
-	const homeDir = os.homedir();
-	return path.join(homeDir, '.claude', 'skills');
+function getSkillsDir(scope: 'global' | 'local' = 'global', workingDir?: string): string {
+	if (scope === 'local' && workingDir) {
+		return path.join(workingDir, '.claude', 'skills');
+	}
+	return path.join(os.homedir(), '.claude', 'skills');
 }
 
 /**
@@ -58,9 +60,9 @@ function createSkillContent(skill: SkillDetail): string {
  * Register a CodeMie skill as a Claude Code skill
  * Creates: ~/.claude/skills/{slug}/SKILL.md
  */
-export async function registerClaudeSkill(skill: SkillDetail): Promise<string> {
+export async function registerClaudeSkill(skill: SkillDetail, scope: 'global' | 'local' = 'global', workingDir?: string): Promise<string> {
 	const slug = generateSlug(skill);
-	const skillsDir = getSkillsDir();
+	const skillsDir = getSkillsDir(scope, workingDir);
 	const skillDir = path.join(skillsDir, slug);
 	const skillFile = path.join(skillDir, 'SKILL.md');
 
@@ -82,8 +84,8 @@ export async function registerClaudeSkill(skill: SkillDetail): Promise<string> {
  * Unregister a Claude Code skill
  * Removes: ~/.claude/skills/{slug}/
  */
-export async function unregisterClaudeSkill(slug: string): Promise<void> {
-	const skillsDir = getSkillsDir();
+export async function unregisterClaudeSkill(slug: string, scope: 'global' | 'local' = 'global', workingDir?: string): Promise<void> {
+	const skillsDir = getSkillsDir(scope, workingDir);
 	const skillDir = path.join(skillsDir, slug);
 
 	try {

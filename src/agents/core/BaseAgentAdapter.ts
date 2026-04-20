@@ -514,7 +514,7 @@ export abstract class BaseAgentAdapter implements AgentAdapter {
       console.log(''); // Empty line for spacing
 
       // Silently sync registered skills in background (fire-and-forget)
-      syncRegisteredSkills(profileName).catch(() => {});
+      syncRegisteredSkills(profileName, process.cwd()).catch(() => {});
     }
 
     // Transform CODEMIE_* → agent-specific env vars (based on envMapping)
