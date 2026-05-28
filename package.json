@@ -1,6 +1,6 @@
 {
   "name": "@codemieai/code",
-  "version": "0.2.1",
+  "version": "0.3.2",
   "description": "Unified AI coding assistant CLI - Manage Claude Code, Gemini & custom agents. Multi-provider support (OpenAI, Azure, LiteLLM, SSO). Built-in LangGraph agent with file operations & git integration.",
   "type": "module",
   "main": "dist/index.js",
@@ -25,6 +25,7 @@
     "LICENSE"
   ],
   "scripts": {
+    "postinstall": "node scripts/postinstall.mjs",
     "build": "tsc && tsc-alias && npm run copy-plugin",
     "copy-plugin": "node scripts/copy-plugins.js",
     "prepare:install-artifacts": "node scripts/prepare-install-artifacts.mjs",
